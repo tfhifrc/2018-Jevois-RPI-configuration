@@ -9,4 +9,5 @@ This repository contains Linux scripts, Jevois configuration files and documenta
 1. Scripts to start and stop mjpg streamer web server(s)
 
 ## Set up Raspberry Pi and configure mjpg-streamer to work with Jevois USB cameras
+1. Install 
 1. How-To documentation on installing [MJPG-STREAMER](https://www.collaborizm.com/thread/SyFenrp6l)
