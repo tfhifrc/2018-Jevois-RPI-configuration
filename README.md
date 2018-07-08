@@ -3,7 +3,7 @@ This repository contains Linux scripts, Jevois configuration files and documenta
 
 ## Usage Instructions (once installation and configuration complete)
 1. With PI powered off, connect 1-3 Jevois cameras to your PI
-1. Boot up the PI and 1-3 connected Jevois cameras will begin streaming video on ports 5800, 5801 and 5802
+1. Boot up the PI and 1-3 connected Jevois cameras will begin streaming video on ports **5800**, **5801** and **5802**
 
 
 ## Compatibility
@@ -12,7 +12,7 @@ This repository contains Linux scripts, Jevois configuration files and documenta
    1. The Raspian version: **8 (stretch)*
    1. Kernel version: 4.15.52-v7 #1123 Wenesday June 27  2018
 1. Jevois configuration file
-   1. These instructions were verified on JeVois images: 1.7.2, 1.8.1
+   1. These instructions were verified on JeVois images: **1.7.2**, **1.8.1**
    
    
 ## Configuration Instructions
@@ -41,7 +41,6 @@ This repository contains Linux scripts, Jevois configuration files and documenta
       1. **down.sh** Optional wrapper to shutdown PI.
       
 1. Jevois configuration file
-   1. These instructions were verified on JeVois images: **1.7.2**, **1.8.1**
    1. Enable Multicam mode
       1. Enable multiple cameras by reducing Jevois USB allocation by creating file **multicam** in the boot partition. 
       1. [Jevois documentation on multicam option](http://jevois.org/doc/Multicam.html)   
