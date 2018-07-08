@@ -24,5 +24,4 @@
 # 
 # m h  dom mon dow   command
 @reboot nohup /home/pi/start.sh > /home/pi/start.log 2>&1 &
-#@reboot nohup /home/pi/play_video.sh > /home/pi/play_video.log 2>&1 &
-#@reboot sudo ifconfig wlan0 down
+@reboot sudo ifconfig wlan0 down

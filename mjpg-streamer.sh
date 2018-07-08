@@ -1,12 +1,16 @@
 #!/bin/bash
 # chmod +x mjpg-streamer.sh
-# Crontab: @reboot /home/pi/mjpg-streamer/mjpg-streamer.sh start
-# Crontab: @reboot /home/pi/mjpg-streamer/mjpg-streamer-experimental/mjpg-streamer.sh start
+#
+# $1 must be one of ( start | stop | status | restart )
+#
+# $2 determines what /dev/videoX device is used. The X must match the argument specified or the camera will not be found.
+#    - $2 also determines /home/pi/www_X for the WWW output directory to use
+#    - $2 also determines 580X HTTP port where the stream will be available.
+#
 
+ID=${2}  # Used 
 
-ID=${2}
-
-MJPG_STREAMER_BIN="/usr/local/bin/mjpg_streamer"  # "$(dirname $0)/mjpg_streamer"
+MJPG_STREAMER_BIN="/usr/local/bin/mjpg_streamer" 
 export LD_LIBRARY_PATH="$(dirname $MJPG_STREAMER_BIN):."
 
 MJPG_STREAMER_WWW="/home/pi/www_${ID}"
@@ -17,67 +21,75 @@ HANGING_CHECK_INTERVAL="8" # how often to check to make sure the server is not h
 VIDEO_DEV="/dev/video${ID}"
 FRAME_RATE="-f 15"
 QUALITY="-q 80"
-# 160x120 176x144 320x240 352x288 424x240 432x240 640x360 640x480 800x448 800x600 960x544 1280x720 1920x1080 (QVGA, VGA, SVGA, WXGA)   
-#RESOLUTION="-r 1280x720"  
 RESOLUTION="-r 320x240"  
-#  lsusb -s 001:006 -v | egrep "Width|Height" 
-# https://www.textfixer.com/tools/alphabetical-order.php  
-# v4l2-ctl --list-formats-ext  
-# Show Supported Video Formates
-# Need sudo to start mjpg-streamer to use port 554.
 PORT="580${ID}"
 YUV="no"
 
 ###############
-#INPUT_OPTIONS="-r ${RESOLUTION} -d ${VIDEO_DEV} -f ${FRAME_RATE} -q ${QUALITY} -pl 60hz"
-#INPUT_OPTIONS="-r ${RESOLUTION} -d ${VIDEO_DEV} -q ${QUALITY} -pl 60hz"  # Limit Framerate with  "--every_frame ", ( mjpg_streamer --input "input_uvc.so --help" )
-
-# Limit Framerate with  "--every_frame ", ( mjpg_streamer --input "input_uvc.so --help" )
-#INPUT_OPTIONS="-d ${VIDEO_DEV} -q ${QUALITY} -pl 60hz"  
 INPUT_OPTIONS=" -d ${VIDEO_DEV} ${RESOLUTION} ${QUALITY} ${FRAME_RATE} -pl 60hz"  
 
-echo $(date) >> ${MJPG_STREAMER_LOG_FILE} 2>&1
-ls -l /dev/video0 >> ${MJPG_STREAMER_LOG_FILE} 2>&1
-lsusb >> ${MJPG_STREAMER_LOG_FILE} 2>&1
-pwd >> ${MJPG_STREAMER_LOG_FILE} 2>&1
 
 if [ "${YUV}" == "true" ]; then
 	INPUT_OPTIONS+=" -y"
 fi
 
+
+###############
 OUTPUT_OPTIONS="-p ${PORT} -w ${MJPG_STREAMER_WWW}"
 
 # ==========================================================
+function print_debug_data() {
+    echo "========================" >> ${MJPG_STREAMER_LOG_FILE} 2>&1
+    echo "Debug timestamp: $(date)" >> ${MJPG_STREAMER_LOG_FILE} 2>&1
+    ls -l ${VIDEO_DEV} >> ${MJPG_STREAMER_LOG_FILE} 2>&1
+    echo "Check Target Video Device ${VIDEO_DEV}..." >> ${MJPG_STREAMER_LOG_FILE} 2>&1
+    ls -l ${VIDEO_DEV} >> ${MJPG_STREAMER_LOG_FILE} 2>&1
+    echo "Check All Video devices...:" >> ${MJPG_STREAMER_LOG_FILE} 2>&1
+    ls -l /dev/video* >> ${MJPG_STREAMER_LOG_FILE} 2>&1
+    echo "Check USB by invoking lsusb..." >> ${MJPG_STREAMER_LOG_FILE} 2>&1
+    lsusb >> ${MJPG_STREAMER_LOG_FILE} 2>&1
+    echo "Check video devices with v4l2-ctl --list-formats-ext" >> ${MJPG_STREAMER_LOG_FILE} 2>&1
+    /usr/bin/v4l2-ctl --list-formats-ext >> ${MJPG_STREAMER_LOG_FILE} 2>&1
+    echo "Current working directory: $(pwd)" >> ${MJPG_STREAMER_LOG_FILE} 2>&1
+    echo "" >> ${MJPG_STREAMER_LOG_FILE} 2>&1
+}
+
 function running() {
     if ps aux | grep ${MJPG_STREAMER_BIN} | grep ${VIDEO_DEV} >/dev/null 2>&1; then
         return 0
     else
+        msg="Check if running...Not running"
+        echo ${msg} 2>&1 | tee -a ${MJPG_STREAMER_LOG_FILE}
         return 1
     fi
 }
 
 function start() {
+
     if running; then
-        msg="[${VIDEO_DEV}] already started, exiting..."
-        echo ${msg}; echo ${msg} >> ${MJPG_STREAMER_LOG_FILE} 2>&1
+        msg="Already streaming on device: [${VIDEO_DEV}]."
+        echo ${msg} 2>&1 | tee -a ${MJPG_STREAMER_LOG_FILE}
+        print_debug_data
+        msg="Exiting for device: ${VIDEO_DEV}]..."
+        echo ${msg} 2>&1 | tee -a ${MJPG_STREAMER_LOG_FILE}
         return 1
     fi
 
     if [ ! -e ${VIDEO_DEV} ]; then
-        msg="[${VIDEO_DEV}] missing, exiting..."
-        echo ${msg}; echo ${msg} >> ${MJPG_STREAMER_LOG_FILE} 2>&1
+        msg="Missing video device file: [${VIDEO_DEV}]."
+        echo ${msg} 2>&1 | tee -a ${MJPG_STREAMER_LOG_FILE}
+        print_debug_data
+        msg="Exiting for device: ${VIDEO_DEV}]..."
+        echo ${msg} 2>&1 | tee -a ${MJPG_STREAMER_LOG_FILE}
         return 1
     fi
-
-
-    echo $(date) >> ${MJPG_STREAMER_LOG_FILE} 2>&1
-    ls -l ${VIDEO_DEV} >> ${MJPG_STREAMER_LOG_FILE} 2>&1
+   
     command="${MJPG_STREAMER_BIN} -i \"input_uvc.so ${INPUT_OPTIONS}\" -o \"output_http.so ${OUTPUT_OPTIONS}\""
     echo ${command}; echo ${command} >> ${MJPG_STREAMER_LOG_FILE}
+    
+    print_debug_data
     eval ${command} >> ${MJPG_STREAMER_LOG_FILE} 2>&1 & 
-    #${MJPG_STREAMER_BIN} -i "input_uvc.so ${INPUT_OPTIONS}" -o "output_http.so ${OUTPUT_OPTIONS}"
-    echo $(date) >> ${MJPG_STREAMER_LOG_FILE} 2>&1
-    ls -l ${VIDEO_DEV} >> ${MJPG_STREAMER_LOG_FILE} 2>&1
+    print_debug_data
 
     if running; then
         if [ "$1" != "nocheck" ]; then
@@ -85,24 +97,22 @@ function start() {
             check_hanging & > /dev/null 2>&1 # start the hanging checking task
         fi
 
-        msg="[${VIDEO_DEV}] started"
+        msg="Successfully started streaming on [${VIDEO_DEV}]"
         echo "[${VIDEO_DEV}] started" >> ${MJPG_STREAMER_LOG_FILE} 2>&1
         return 0
 
     else
-        msg="[${VIDEO_DEV}] failed to start"
-        echo ${msg}; echo ${msg} >> ${MJPG_STREAMER_LOG_FILE} 2>&1
-        echo $(date) >> ${MJPG_STREAMER_LOG_FILE} 2>&1
-        ls -l ${VIDEO_DEV} >> ${MJPG_STREAMER_LOG_FILE} 2>&1
-        ${command} >> ${MJPG_STREAMER_LOG_FILE} 2>&1 &
+        msg="Failed to start streaming on device: [${VIDEO_DEV}]."
+        echo ${msg} 2>&1 | tee -a ${MJPG_STREAMER_LOG_FILE}
+        print_debug_data
         return 1
     fi
 }
 
 function stop() {
     if ! running; then
-        msg="[${VIDEO_DEV}] not running"
-        echo ${msg}; echo ${msg} >> ${MJPG_STREAMER_LOG_FILE} 2>&1
+        msg="Called stop but not streaming on device: [${VIDEO_DEV}]"
+        echo ${msg} 2>&1 | tee -a ${MJPG_STREAMER_LOG_FILE}
         return 1
     fi
 
@@ -117,19 +127,22 @@ function stop() {
     # stop the server
     ps aux | grep ${MJPG_STREAMER_BIN} | grep ${VIDEO_DEV} | tr -s ' ' | cut -d ' ' -f 2 | grep -v ${own_pid} | xargs -r kill
 
-    msg="[${VIDEO_DEV}] stopped"
-    echo ${msg}; echo ${msg} >> ${MJPG_STREAMER_LOG_FILE} 2>&1
+    msg="Stopped streamin on device: [${VIDEO_DEV}]"
+    echo ${msg} 2>&1 | tee -a ${MJPG_STREAMER_LOG_FILE}
     return 0
 }
 
 function check_running() {
-    echo "[${VIDEO_DEV}] starting running check task" >> ${MJPG_STREAMER_LOG_FILE} 2>&1
+    echo "Check streaming on device: [${VIDEO_DEV}]. Starting running check task..." >> ${MJPG_STREAMER_LOG_FILE} 2>&1
 
     while true; do
         sleep ${RUNNING_CHECK_INTERVAL}
 
         if ! running; then
-            echo "[${VIDEO_DEV}] server stopped, starting" >> ${MJPG_STREAMER_LOG_FILE} 2>&1
+            debug
+            echo "Streaming stopped on device: [${VIDEO_DEV}]." >> ${MJPG_STREAMER_LOG_FILE} 2>&1
+            debug
+            echo "Start streaming on device: [${VIDEO_DEV}]..." >> ${MJPG_STREAMER_LOG_FILE} 2>&1
             start nocheck
         fi
     done
@@ -143,7 +156,9 @@ function check_hanging() {
 
         # treat the "error grabbing frames" case
         if tail -n2 ${MJPG_STREAMER_LOG_FILE} | grep -i "error grabbing frames" > /dev/null; then
-            echo "[${VIDEO_DEV}] server is hanging, killing" >> ${MJPG_STREAMER_LOG_FILE} 2>&1
+            echo "Streaming hung on device: [${VIDEO_DEV}]." >> ${MJPG_STREAMER_LOG_FILE} 2>&1
+            debug
+            echo "Invoke stop device: [${VIDEO_DEV}]..." >> ${MJPG_STREAMER_LOG_FILE} 2>&1
             stop nocheck
         fi
     done
@@ -151,7 +166,7 @@ function check_hanging() {
 
 function help() {
     msg="Usage: $0 [start|stop|restart|status]"
-    echo ${msg}; echo ${msg} >> ${MJPG_STREAMER_LOG_FILE} 2>&1
+    echo ${msg} 2>&1 | tee -a ${MJPG_STREAMER_LOG_FILE}
     return 0
 }
 
@@ -167,12 +182,12 @@ elif [ "$1" == "restart" ]; then
 
 elif [ "$1" == "status" ]; then
     if running; then
-        msg="[${VIDEO_DEV}] running"
-        echo ${msg}; echo ${msg} >> ${MJPG_STREAMER_LOG_FILE} 2>&1
+        msg="Running: [${VIDEO_DEV}]"
+        echo ${msg} 2>&1 | tee -a ${MJPG_STREAMER_LOG_FILE}
         exit 0
     else
-        msg="[${VIDEO_DEV}] stopped"
-        echo ${msg}; echo ${msg} >> ${MJPG_STREAMER_LOG_FILE} 2>&1
+        msg="Stopped: [${VIDEO_DEV}]"
+        echo ${msg} 2>&1 | tee -a ${MJPG_STREAMER_LOG_FILE}
         exit 1
     fi
 else
