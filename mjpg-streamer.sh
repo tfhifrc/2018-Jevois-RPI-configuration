@@ -72,9 +72,10 @@ function start() {
 
     echo $(date) >> ${MJPG_STREAMER_LOG_FILE} 2>&1
     ls -l ${VIDEO_DEV} >> ${MJPG_STREAMER_LOG_FILE} 2>&1
-    command="Starting: [${VIDEO_DEV}] ${MJPG_STREAMER_BIN} -i \"input_uvc.so ${INPUT_OPTIONS}\" -o \"output_http.so ${OUTPUT_OPTIONS}\""
+    command="${MJPG_STREAMER_BIN} -i \"input_uvc.so ${INPUT_OPTIONS}\" -o \"output_http.so ${OUTPUT_OPTIONS}\""
     echo ${command}; echo ${command} >> ${MJPG_STREAMER_LOG_FILE}
-    eval(${command} >> ${MJPG_STREAMER_LOG_FILE} 2>&1 &)
+    #${command} >> ${MJPG_STREAMER_LOG_FILE} 2>&1 & 
+    ${MJPG_STREAMER_BIN} -i "input_uvc.so ${INPUT_OPTIONS}" -o "output_http.so ${OUTPUT_OPTIONS}"
     echo $(date) >> ${MJPG_STREAMER_LOG_FILE} 2>&1
     ls -l ${VIDEO_DEV} >> ${MJPG_STREAMER_LOG_FILE} 2>&1
 
@@ -93,7 +94,7 @@ function start() {
         echo ${msg}; echo ${msg} >> ${MJPG_STREAMER_LOG_FILE} 2>&1
         echo $(date) >> ${MJPG_STREAMER_LOG_FILE} 2>&1
         ls -l ${VIDEO_DEV} >> ${MJPG_STREAMER_LOG_FILE} 2>&1
-        eval(${command} >> ${MJPG_STREAMER_LOG_FILE} 2>&1 &)
+        ${command} >> ${MJPG_STREAMER_LOG_FILE} 2>&1 &
         return 1
     fi
 }
