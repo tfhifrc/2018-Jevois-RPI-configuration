@@ -34,7 +34,7 @@ YUV="no"
 
 # Limit Framerate with  "--every_frame ", ( mjpg_streamer --input "input_uvc.so --help" )
 #INPUT_OPTIONS="-d ${VIDEO_DEV} -q ${QUALITY} -pl 60hz"  
-INPUT_OPTIONS="-d ${VIDEO_DEV} ${RESOLUTION} ${QUALITY} ${FRAME_RATE} -pl 60hz"  
+INPUT_OPTIONS=" -d ${VIDEO_DEV} ${RESOLUTION} ${QUALITY} ${FRAME_RATE} -pl 60hz"  
 
 echo $(date) >> ${MJPG_STREAMER_LOG_FILE} 2>&1
 ls -l /dev/video0 >> ${MJPG_STREAMER_LOG_FILE} 2>&1
@@ -74,8 +74,8 @@ function start() {
     ls -l ${VIDEO_DEV} >> ${MJPG_STREAMER_LOG_FILE} 2>&1
     command="${MJPG_STREAMER_BIN} -i \"input_uvc.so ${INPUT_OPTIONS}\" -o \"output_http.so ${OUTPUT_OPTIONS}\""
     echo ${command}; echo ${command} >> ${MJPG_STREAMER_LOG_FILE}
-    #${command} >> ${MJPG_STREAMER_LOG_FILE} 2>&1 & 
-    ${MJPG_STREAMER_BIN} -i "input_uvc.so ${INPUT_OPTIONS}" -o "output_http.so ${OUTPUT_OPTIONS}"
+    eval ${command} >> ${MJPG_STREAMER_LOG_FILE} 2>&1 & 
+    #${MJPG_STREAMER_BIN} -i "input_uvc.so ${INPUT_OPTIONS}" -o "output_http.so ${OUTPUT_OPTIONS}"
     echo $(date) >> ${MJPG_STREAMER_LOG_FILE} 2>&1
     ls -l ${VIDEO_DEV} >> ${MJPG_STREAMER_LOG_FILE} 2>&1
 
