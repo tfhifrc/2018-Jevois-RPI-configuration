@@ -17,4 +17,9 @@ if [ "$_IP" ]; then
   printf "My IP address is %s\n" "$_IP"
 fi
 
+# nohup /bin/bash /home/pi/play_video.sh 2>&1 > /home/pi/play_video_log.log &
+# nohup /bin/bash /home/pi/load_video.sh 2>&1 > /home/pi/load_video_log.log &
+/home/pi/mjpg-streamer_0.sh start 
+/home/pi/mjpg-streamer_1.sh start 
+
 exit 0

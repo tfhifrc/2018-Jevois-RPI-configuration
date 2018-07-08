@@ -7,6 +7,8 @@
 ID=${2}
 
 MJPG_STREAMER_BIN="/usr/local/bin/mjpg_streamer"  # "$(dirname $0)/mjpg_streamer"
+export LD_LIBRARY_PATH="$(dirname $MJPG_STREAMER_BIN):."
+
 MJPG_STREAMER_WWW="/home/pi/www_${ID}"
 MJPG_STREAMER_LOG_FILE="${0%.*}_${ID}.log"  # "$(dirname $0)/mjpg-streamer.log"
 RUNNING_CHECK_INTERVAL="4" # how often to check to make sure the server is running (in seconds)
@@ -34,6 +36,10 @@ YUV="no"
 #INPUT_OPTIONS="-d ${VIDEO_DEV} -q ${QUALITY} -pl 60hz"  
 INPUT_OPTIONS="-d ${VIDEO_DEV} ${RESOLUTION} ${QUALITY} ${FRAME_RATE} -pl 60hz"  
 
+echo $(date) >> ${MJPG_STREAMER_LOG_FILE} 2>&1
+ls -l /dev/video0 >> ${MJPG_STREAMER_LOG_FILE} 2>&1
+lsusb >> ${MJPG_STREAMER_LOG_FILE} 2>&1
+pwd >> ${MJPG_STREAMER_LOG_FILE} 2>&1
 
 if [ "${YUV}" == "true" ]; then
 	INPUT_OPTIONS+=" -y"
@@ -52,22 +58,25 @@ function running() {
 
 function start() {
     if running; then
-        echo "[${VIDEO_DEV}] already started, exiting..."
-        echo "[${VIDEO_DEV}] already started, exiting..." >> ${MJPG_STREAMER_LOG_FILE}
+        msg="[${VIDEO_DEV}] already started, exiting..."
+        echo ${msg}; echo ${msg} >> ${MJPG_STREAMER_LOG_FILE} 2>&1
         return 1
     fi
 
     if [ ! -e ${VIDEO_DEV} ]; then
-        echo "[${VIDEO_DEV}] missing, exiting..."
-        echo "[${VIDEO_DEV}] missing, exiting..." >> ${MJPG_STREAMER_LOG_FILE}
+        msg="[${VIDEO_DEV}] missing, exiting..."
+        echo ${msg}; echo ${msg} >> ${MJPG_STREAMER_LOG_FILE} 2>&1
         return 1
     fi
 
-    export LD_LIBRARY_PATH="$(dirname $MJPG_STREAMER_BIN):."
 
-    echo "Starting: [${VIDEO_DEV}] ${MJPG_STREAMER_BIN} -i \"input_uvc.so ${INPUT_OPTIONS}\" -o \"output_http.so ${OUTPUT_OPTIONS}\""
-    echo "Starting: [${VIDEO_DEV}] ${MJPG_STREAMER_BIN} -i \"input_uvc.so ${INPUT_OPTIONS}\" -o \"output_http.so ${OUTPUT_OPTIONS}\"" >> ${MJPG_STREAMER_LOG_FILE}
-    ${MJPG_STREAMER_BIN} -i "input_uvc.so ${INPUT_OPTIONS}" -o "output_http.so ${OUTPUT_OPTIONS}" >> ${MJPG_STREAMER_LOG_FILE} 2>&1 &
+    echo $(date) >> ${MJPG_STREAMER_LOG_FILE} 2>&1
+    ls -l ${VIDEO_DEV} >> ${MJPG_STREAMER_LOG_FILE} 2>&1
+    command="Starting: [${VIDEO_DEV}] ${MJPG_STREAMER_BIN} -i \"input_uvc.so ${INPUT_OPTIONS}\" -o \"output_http.so ${OUTPUT_OPTIONS}\""
+    echo ${command}; echo ${command} >> ${MJPG_STREAMER_LOG_FILE}
+    eval(${command} >> ${MJPG_STREAMER_LOG_FILE} 2>&1 &)
+    echo $(date) >> ${MJPG_STREAMER_LOG_FILE} 2>&1
+    ls -l ${VIDEO_DEV} >> ${MJPG_STREAMER_LOG_FILE} 2>&1
 
     if running; then
         if [ "$1" != "nocheck" ]; then
@@ -75,22 +84,24 @@ function start() {
             check_hanging & > /dev/null 2>&1 # start the hanging checking task
         fi
 
-        echo "[${VIDEO_DEV}] started"
-        echo "[${VIDEO_DEV}] started" >> ${MJPG_STREAMER_LOG_FILE}
+        msg="[${VIDEO_DEV}] started"
+        echo "[${VIDEO_DEV}] started" >> ${MJPG_STREAMER_LOG_FILE} 2>&1
         return 0
 
     else
-        echo "[${VIDEO_DEV}] failed to start"
-        echo "[${VIDEO_DEV}] failed to start" >> ${MJPG_STREAMER_LOG_FILE}
+        msg="[${VIDEO_DEV}] failed to start"
+        echo ${msg}; echo ${msg} >> ${MJPG_STREAMER_LOG_FILE} 2>&1
+        echo $(date) >> ${MJPG_STREAMER_LOG_FILE} 2>&1
+        ls -l ${VIDEO_DEV} >> ${MJPG_STREAMER_LOG_FILE} 2>&1
+        eval(${command} >> ${MJPG_STREAMER_LOG_FILE} 2>&1 &)
         return 1
-
     fi
 }
 
 function stop() {
     if ! running; then
-        echo "[${VIDEO_DEV}] not running"
-        echo "[${VIDEO_DEV}] not running" >> ${MJPG_STREAMER_LOG_FILE}
+        msg="[${VIDEO_DEV}] not running"
+        echo ${msg}; echo ${msg} >> ${MJPG_STREAMER_LOG_FILE} 2>&1
         return 1
     fi
 
@@ -105,41 +116,41 @@ function stop() {
     # stop the server
     ps aux | grep ${MJPG_STREAMER_BIN} | grep ${VIDEO_DEV} | tr -s ' ' | cut -d ' ' -f 2 | grep -v ${own_pid} | xargs -r kill
 
-    echo "[${VIDEO_DEV}] stopped"
-    echo "[${VIDEO_DEV}] stopped" >> ${MJPG_STREAMER_LOG_FILE}
+    msg="[${VIDEO_DEV}] stopped"
+    echo ${msg}; echo ${msg} >> ${MJPG_STREAMER_LOG_FILE} 2>&1
     return 0
 }
 
 function check_running() {
-    echo "[${VIDEO_DEV}] starting running check task" >> ${MJPG_STREAMER_LOG_FILE}
+    echo "[${VIDEO_DEV}] starting running check task" >> ${MJPG_STREAMER_LOG_FILE} 2>&1
 
     while true; do
         sleep ${RUNNING_CHECK_INTERVAL}
 
         if ! running; then
-            echo "[${VIDEO_DEV}] server stopped, starting" >> ${MJPG_STREAMER_LOG_FILE}
+            echo "[${VIDEO_DEV}] server stopped, starting" >> ${MJPG_STREAMER_LOG_FILE} 2>&1
             start nocheck
         fi
     done
 }
 
 function check_hanging() {
-    echo "[${VIDEO_DEV}] starting hanging check task" >> ${MJPG_STREAMER_LOG_FILE}
+    echo "[${VIDEO_DEV}] starting hanging check task" >> ${MJPG_STREAMER_LOG_FILE} 2>&1
 
     while true; do
         sleep ${HANGING_CHECK_INTERVAL}
 
         # treat the "error grabbing frames" case
         if tail -n2 ${MJPG_STREAMER_LOG_FILE} | grep -i "error grabbing frames" > /dev/null; then
-            echo "[${VIDEO_DEV}] server is hanging, killing" >> ${MJPG_STREAMER_LOG_FILE}
+            echo "[${VIDEO_DEV}] server is hanging, killing" >> ${MJPG_STREAMER_LOG_FILE} 2>&1
             stop nocheck
         fi
     done
 }
 
 function help() {
-    echo "Usage: $0 [start|stop|restart|status]"
-    echo "Usage: $0 [start|stop|restart|status]" >> ${MJPG_STREAMER_LOG_FILE}
+    msg="Usage: $0 [start|stop|restart|status]"
+    echo ${msg}; echo ${msg} >> ${MJPG_STREAMER_LOG_FILE} 2>&1
     return 0
 }
 
@@ -155,12 +166,12 @@ elif [ "$1" == "restart" ]; then
 
 elif [ "$1" == "status" ]; then
     if running; then
-        echo "[${VIDEO_DEV}] running"
-        echo "[${VIDEO_DEV}] running" >> ${MJPG_STREAMER_LOG_FILE}
+        msg="[${VIDEO_DEV}] running"
+        echo ${msg}; echo ${msg} >> ${MJPG_STREAMER_LOG_FILE} 2>&1
         exit 0
     else
-        echo "[${VIDEO_DEV}] stopped"
-        echo "[${VIDEO_DEV}] stopped" >> ${MJPG_STREAMER_LOG_FILE}
+        msg="[${VIDEO_DEV}] stopped"
+        echo ${msg}; echo ${msg} >> ${MJPG_STREAMER_LOG_FILE} 2>&1
         exit 1
     fi
 else
